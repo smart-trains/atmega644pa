@@ -37,12 +37,11 @@
 #include <string.h>?
 #include <stdio.h>
 
-#define  LED     IOPORT_CREATE_PIN(PORTB, 3)//LED¶¨ÒåÎªPB3
+#define  LED     IOPORT_CREATE_PIN(PORTB, 3)//LEDå®šä¹‰ä¸ºPB3
 
 #define MOSI		IOPORT_CREATE_PIN(MOSI_PORT, MOSI_BIT)
 #define MISO		IOPORT_CREATE_PIN(MISO_PORT, MISO_BIT)
 #define SCK			IOPORT_CREATE_PIN(SCK_PORT, SCK_BIT)
-// Test
 
 //SPI
 void SPI_MasterInit(void) {
@@ -66,14 +65,14 @@ int main (void)
 	
 //	TCCR0A
 
-	system_init(); //ÏµÍ³³õÊ¼»¯
+	system_init(); //ç³»ç»Ÿåˆå§‹åŒ–
 	
 	
 	SPI_MasterInit();
 	
-	ioport_init();//³õÊ¼»¯IO¶Ë¿Ú
-	ioport_set_pin_dir( LED,  IOPORT_DIR_OUTPUT);//LED¶Ë¿ÚÎªÊä³ö
-	ioport_set_pin_level( LED, IOPORT_PIN_LEVEL_HIGH);//LED¶Ë¿ÚÊä³ö¸ßµçÆ½
+	ioport_init();//åˆå§‹åŒ–IOç«¯å£
+	ioport_set_pin_dir( LED,  IOPORT_DIR_OUTPUT);//LEDç«¯å£ä¸ºè¾“å‡º
+	ioport_set_pin_level( LED, IOPORT_PIN_LEVEL_HIGH);//LEDç«¯å£è¾“å‡ºé«˜ç”µå¹³
 	
 
 	while(1){
