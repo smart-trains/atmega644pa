@@ -34,14 +34,19 @@
 #include "time.h"
 #include "iom644pa.h"
 #include "sfr_defs.h"
-#include <string.h>?
-#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
-#define  LED     IOPORT_CREATE_PIN(PORTB, 3)//LED定义为PB3
+
+
+
+#define  LED     IOPORT_CREATE_PIN(PORTB, 3)//LED pin: PB3
 
 #define MOSI		IOPORT_CREATE_PIN(MOSI_PORT, MOSI_BIT)
 #define MISO		IOPORT_CREATE_PIN(MISO_PORT, MISO_BIT)
 #define SCK			IOPORT_CREATE_PIN(SCK_PORT, SCK_BIT)
+
+ioport_init()
 
 //SPI
 void SPI_MasterInit(void) {
@@ -65,14 +70,12 @@ int main (void)
 	
 //	TCCR0A
 
-	system_init(); //系统初始化
-	
 	
 	SPI_MasterInit();
 	
-	ioport_init();//初始化IO端口
-	ioport_set_pin_dir( LED,  IOPORT_DIR_OUTPUT);//LED端口为输出
-	ioport_set_pin_level( LED, IOPORT_PIN_LEVEL_HIGH);//LED端口输出高电平
+	ioport_init();
+	ioport_set_pin_dir	( LED,  IOPORT_DIR_OUTPUT);
+	ioport_set_pin_level( LED,	IOPORT_PIN_LEVEL_HIGH);
 	
 
 	while(1){
