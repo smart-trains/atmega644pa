@@ -47,9 +47,10 @@ void SPI_MasterInit(void) {
 	SPCR = _BV(SPE) | _BV(MSTR) | _BV(SPR0); //Enable SPI, Master, set clock rate fck/16
 }
 
-void SPI_MasterTransmit(char cData) {	//send message
+char SPI_MasterTransmit(char cData) {	//send message
 	SPDR = cData; // Start transmission
 	while(!( SPSR & _BV(SPIF) )); // Wait for transmission complete
+	return SPDR;
 }
 
 /* SC18IS750 version
@@ -81,16 +82,19 @@ char SPI_read_buf (char register) { // mcu reads a register from SC16IS600
 	return register; // receive the read data
 }
 
-void SPI_write (char address, char numofbytes, char data) { // mcu writes data to slave through SC16IS600
+void SPI_write (char address, char numofbytes, char[] data) { // mcu writes data to slave through SC16IS600
 	ioport_set_pin_dir(CS_SC, IOPORT_DIR_OUTPUT);
 	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_LOW);	//select sc18
 	SPI_MasterTransmit(SC18IS600_CMD_WRBLK);	//Write N bytes to I2C-bus slave device
 	SPI_MasterTransmit(numofbytes); //number of bytes to write
 	address = address & 0b11111110;	//SC18IS600 ignore the least significant bit of slave address and set it to 0 to write
 	SPI_MasterTransmit(address); //slave address
-	SPI_MasterTransmit(data); // data is sent
+	for (int i = 0; i < numofbytes; i++) {
+		SPI_MasterTransmit(data[i]);
+	}
 	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_HIGH);	//unselect sc18
 }
+
 
 void SC18_set_rgst(char reg, char cmd) {
 	ioport_set_pin_dir(CS_SC, IOPORT_DIR_OUTPUT);
@@ -101,28 +105,14 @@ void SC18_set_rgst(char reg, char cmd) {
 	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_HIGH);	//unselect sc18
 }
 
-/* SC18IS800 Initial (unfinished)
+// SC18IS800 Initial (unfinished)
 void init_SC16IS600 (void) {
-	SC18_set_rgst(SC18IS600_I2CCLOCK,5);	//set clock decimal as 5
-	
-	
-	
-	SPI_write (LCR, 0x80); // 0x80 to program baud rate
-	SPI_write (DLL, 0x30); // 0x30=19.2K, 0x08 =115.2K with X1=14.7456 MHz
-	SPI_write (DLM, 0x00); // divisor = 0x0008 for 115200 bps
-	SPI_write (LCR, 0xBF); // access EFR register
-	SPI_write (EFR, 0X10); // enable enhanced registers
-	SPI_write (LCR, 0x03); // 8 data bit, 1 stop bit, no parity
-	SPI_write (FCR, 0x06); // reset TXFIFO, reset RXFIFO, non FIFO mode
-	SPI_write (FCR, 0x01); // enable FIFO mode
-}
-
-void sc18is600_Init(void) {
 	ioport_set_pin_dir(CS_SC, IOPORT_DIR_OUTPUT);
 	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_LOW);	//select sc18
-
+	SC18_set_rgst(SC18IS600_I2CCLOCK,5);	//set clock decimal as 5
+	SC18_set_rgst(SC18IS600_I2CTO,0b01111111);	//set time out as half osc
+	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_HIGH);	//unselect sc18
 }
-*/
 
 
 int main (void)
