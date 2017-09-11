@@ -217,6 +217,9 @@
     <Folder Include="vsix\" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="src\config\sc18is600.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="src\config\sfr_defs.h">
       <SubType>compile</SubType>
     </Compile>

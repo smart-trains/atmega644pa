@@ -28,6 +28,7 @@
 /*
  * Support and FAQ: visit <a href="http://www.atmel.com/design-support/">Atmel Support</a>
  */
+#include "IncFile1.h"
 #include <asf.h>
 #include "ioport.h"
 #include "delay.h"
@@ -36,30 +37,92 @@
 #include "sfr_defs.h"
 #include <string.h>
 #include <stdlib.h>
-
-
-
-
-#define  LED     IOPORT_CREATE_PIN(PORTB, 3)//LED pin: PB3
-
-#define MOSI		IOPORT_CREATE_PIN(MOSI_PORT, MOSI_BIT)
-#define MISO		IOPORT_CREATE_PIN(MISO_PORT, MISO_BIT)
-#define SCK			IOPORT_CREATE_PIN(SCK_PORT, SCK_BIT)
-
-ioport_init()
+#include "macros.h"
+#include "sc18is600.h"
 
 //SPI
 void SPI_MasterInit(void) {
 	ioport_set_pin_dir( MOSI,  IOPORT_DIR_OUTPUT);
-	ioport_set_pin_dir( MISO,  IOPORT_DIR_OUTPUT);
 	ioport_set_pin_dir( SCK,  IOPORT_DIR_OUTPUT);// Set MOSI and SCK output, all others input
 	SPCR = _BV(SPE) | _BV(MSTR) | _BV(SPR0); //Enable SPI, Master, set clock rate fck/16
 }
 
-void SPI_MasterTransmit(char cData) {
+void SPI_MasterTransmit(char cData) {	//send message
 	SPDR = cData; // Start transmission
 	while(!( SPSR & _BV(SPIF) )); // Wait for transmission complete
 }
+
+/* SC18IS750 version
+char SPI_send (char byte) { // mcu sends a byte to spi bus
+	SPDAT = byte; // data is sent
+	while(!SPI_tx_completed); // wait end of transmission
+	SPSTAT &= ~0x80; // clear mcu spi interrupt flag (SPIF)
+	SPI_tx_completed = 0; // clear transmit spi interrupt flag
+	return SPDAT; // receive data on spi read
+}
+*/
+
+void SC_read_I2C2 (char numofbytes, char slaveaddr) { // mcu reads a register from SC16IS750
+	ioport_set_pin_dir(CS_SC, IOPORT_DIR_OUTPUT);
+	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_LOW);	//select sc18	
+	SPI_MasterTransmit(SC18IS600_CMD_RDBLK);	//Read N bytes from I2C-bus slave device
+	SPI_MasterTransmit(numofbytes); // number of bytes to read
+	slaveaddr = slaveaddr | 0b00000001;	//SC18IS600 ignore the least significant bit of slave address and set it to 1 to read
+	SPI_MasterTransmit(slaveaddr); // slave address
+	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_HIGH);	//unselect sc18
+}
+
+char SPI_read_buf (char register) { // mcu reads a register from SC16IS600
+	ioport_set_pin_dir(CS_SC, IOPORT_DIR_OUTPUT);
+	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_LOW);	//select sc18
+	SPI_MasterTransmit(SC18IS600_CMD_RDBUF);	//Read buffer
+	register = SPI_MasterTransmit(0); // dummy data is sent for spi read
+	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_HIGH);	//unselect sc18
+	return register; // receive the read data
+}
+
+void SPI_write (char address, char numofbytes, char data) { // mcu writes data to slave through SC16IS600
+	ioport_set_pin_dir(CS_SC, IOPORT_DIR_OUTPUT);
+	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_LOW);	//select sc18
+	SPI_MasterTransmit(SC18IS600_CMD_WRBLK);	//Write N bytes to I2C-bus slave device
+	SPI_MasterTransmit(numofbytes); //number of bytes to write
+	address = address & 0b11111110;	//SC18IS600 ignore the least significant bit of slave address and set it to 0 to write
+	SPI_MasterTransmit(address); //slave address
+	SPI_MasterTransmit(data); // data is sent
+	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_HIGH);	//unselect sc18
+}
+
+void SC18_set_rgst(char reg, char cmd) {
+	ioport_set_pin_dir(CS_SC, IOPORT_DIR_OUTPUT);
+	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_LOW);	//select sc18
+	SPI_MasterTransmit(SC18IS600_CMD_WRREG); // Write to sc18 internal register
+	SPI_MasterTransmit(reg); // register select
+	SPI_MasterTransmit(cmd); // command
+	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_HIGH);	//unselect sc18
+}
+
+/* SC18IS800 Initial (unfinished)
+void init_SC16IS600 (void) {
+	SC18_set_rgst(SC18IS600_I2CCLOCK,5);	//set clock decimal as 5
+	
+	
+	
+	SPI_write (LCR, 0x80); // 0x80 to program baud rate
+	SPI_write (DLL, 0x30); // 0x30=19.2K, 0x08 =115.2K with X1=14.7456 MHz
+	SPI_write (DLM, 0x00); // divisor = 0x0008 for 115200 bps
+	SPI_write (LCR, 0xBF); // access EFR register
+	SPI_write (EFR, 0X10); // enable enhanced registers
+	SPI_write (LCR, 0x03); // 8 data bit, 1 stop bit, no parity
+	SPI_write (FCR, 0x06); // reset TXFIFO, reset RXFIFO, non FIFO mode
+	SPI_write (FCR, 0x01); // enable FIFO mode
+}
+
+void sc18is600_Init(void) {
+	ioport_set_pin_dir(CS_SC, IOPORT_DIR_OUTPUT);
+	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_LOW);	//select sc18
+
+}
+*/
 
 
 int main (void)
@@ -69,7 +132,6 @@ int main (void)
 //	clock();
 	
 //	TCCR0A
-
 	
 	SPI_MasterInit();
 	
@@ -77,7 +139,6 @@ int main (void)
 	ioport_set_pin_dir	( LED,  IOPORT_DIR_OUTPUT);
 	ioport_set_pin_level( LED,	IOPORT_PIN_LEVEL_HIGH);
 	
-
 	while(1){
 		ioport_toggle_pin_level(LED);
 		_delay_ms(200);
