@@ -64,16 +64,6 @@ byte SPI_MasterTransmit(byte cData) {
 	return SPDR;
 }
 
-// Send and read data from SPI bus.
-byte SPI_MasterTransmit(byte cData) {
-	// Start transmission
-	SPDR = cData;
-
-	// Wait for transmission complete
-	while(!( SPSR & _BV(SPIF) ));
-	return SPDR;
-}
-
 // Chip select SC18IS600.
 void SC_chip_select(void) {
 	ioport_set_pin_dir(CS_SC, IOPORT_DIR_OUTPUT);
@@ -247,7 +237,7 @@ int main (void)
 	ioport_set_pin_dir	( LED,  IOPORT_DIR_OUTPUT);
 	ioport_set_pin_level( LED,	IOPORT_PIN_LEVEL_HIGH);
 
-	ioport_set_pin_level( SPI_SS,  IOPORT_PIN_LEVEL_HIGH);
+	ioport_set_pin_level( SS,  IOPORT_PIN_LEVEL_HIGH);
 	delay_ms(40);
 
 	SC_init();
