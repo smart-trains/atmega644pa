@@ -19,7 +19,7 @@
 
 typedef uint8_t byte;
 
-// LED pin: PB3
+// LED
 #define LED IOPORT_CREATE_PIN(PORTB, 3)
 
 // SPI Bus
@@ -31,12 +31,3 @@ typedef uint8_t byte;
 // SC16IS600
 #define CS_SC IOPORT_CREATE_PIN(PORTA, 6)
 #define INT_SC IOPORT_CREATE_PIN(PORTD, 3)
-
-
-
-// MPU6050
-long accelX, accelY, accelZ;
-float gForceX, gForceY, gForceZ;
-
-long gyroX, gyroY, gyroZ;
-float rotX, rotY, rotZ;

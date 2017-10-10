@@ -25,11 +25,10 @@
  * Include header files for all drivers that have been imported from
  * Atmel Software Framework (ASF).
  */
+
 /*
- * Support and FAQ: visit <a href="http://www.atmel.com/design-support/">Atmel Support</a>
+ * System libraries.
  */
-#include "IncFile1.h"
-#include "functions.h"
 #include <stdio.h>
 #include "ASF.h"
 #include "time.h"
@@ -38,9 +37,38 @@
 #include <string.h>
 #include <stdlib.h>
 #include "macros.h"
+
+/*
+ * IC libraries.
+ */
 #include "sc18is600.h"
 
-bool interup;
+
+/*
+ * Project libraries.
+ */
+#include "base.h"
+#include "functions.h"
+
+
+// Initialisations.
+void init() {
+	ioport_init();
+	SPI_MasterInit();
+
+	delay_ms(40);
+	ioport_set_pin_dir	(LED, IOPORT_DIR_OUTPUT);
+	ioport_set_pin_level(LED, IOPORT_PIN_LEVEL_HIGH);
+
+	ioport_set_pin_level(SS, IOPORT_PIN_LEVEL_HIGH);
+	delay_ms(40);
+
+	SC_init();
+	delay_ms(40);
+	init_MPU6050();
+	
+	delay_ms(40);
+}
 
 // Initialises SPI bus.
 void SPI_MasterInit(void) {
@@ -62,17 +90,6 @@ byte SPI_MasterTransmit(byte cData) {
 	// Wait for transmission complete
 	while(!( SPSR & _BV(SPIF) ));
 	return SPDR;
-}
-
-// Chip select SC18IS600.
-void SC_chip_select(void) {
-	ioport_set_pin_dir(CS_SC, IOPORT_DIR_OUTPUT);
-	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_LOW);
-}
-
-// Chip unselect SC18IS600.
-void SC_chip_unselect(void) {
-	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_HIGH);
 }
 
 // SC reads N bytes from sensors into its receiver buffer.
@@ -107,7 +124,6 @@ void MCU_SC_read_buffer(uint8_t num_of_bytes, byte data[]) {
 		// Dummy data is sent for SPI read.
 		temp = SPI_MasterTransmit(0);
 		data[i] = temp;
-		
 	}
 	
 	// Unselect sc18.
@@ -116,7 +132,7 @@ void MCU_SC_read_buffer(uint8_t num_of_bytes, byte data[]) {
 
 
 // Writes data to slave through SC18IS600
-void MCU_SC_write (byte address, uint8_t num_of_bytes, byte data[]) {
+void MCU_SC_write(byte address, uint8_t num_of_bytes, byte data[]) {
 	// Chip select SC18IS600.
 	SC_chip_select();
 
@@ -153,9 +169,9 @@ void SC_set_register(byte reg_address, byte value) {	//set sc18 register
 }
 
 // TODO: SC18IS600 Initialisation
-void SC_init (void) {
+void SC_init(void) {
 	// Chip select SC18IS600.
-	ioport_set_pin_dir	( INT_SC,  IOPORT_DIR_INPUT);
+	ioport_set_pin_dir	(INT_SC,  IOPORT_DIR_INPUT);
 	
 	SC_chip_select();
 
@@ -170,7 +186,7 @@ void SC_init (void) {
 
 
 // MPU6050 Initial
-void init_MPU6050 (void) {
+void init_MPU6050(void) {
 	char PW[] = {0x6B, 0x00};
 	MCU_SC_write (0b1101000, 2, PW);
 //  Wire.beginTransmission(0b1101000); //This is the I2C address of the MPU (b1101000/b1101001 for AC0 low/high datasheet sec. 9.2)
@@ -192,9 +208,15 @@ void init_MPU6050 (void) {
 }
 
 void recordAccelRegisters() {
-	const uint8_t bytes_to_read = 6;
+	uint8_t bytes_to_read = 6;
 
-	interup = ioport_get_pin_level(INT_SC);
+	bool interup = ioport_get_pin_level(INT_SC);
+	long accelX, accelY, accelZ;
+	float gForceX, gForceY, gForceZ;
+
+	long gyroX, gyroY, gyroZ;
+	float rotX, rotY, rotZ;
+	
 	byte AR[] = {0x3B};
 	MCU_SC_write(0b1101000, 1, AR);
 //	Wire.beginTransmission(0b1101000); //I2C address of the MPU
@@ -216,41 +238,35 @@ void recordAccelRegisters() {
 	gForceZ = accelZ / 16384.0;	//processAccelData
 }
 
+// Chip select SC18IS600.
+void SC_chip_select(void) {
+	ioport_set_pin_dir(CS_SC, IOPORT_DIR_OUTPUT);
+	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_LOW);
+}
+
+// Chip unselect SC18IS600.
+void SC_chip_unselect(void) {
+	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_HIGH);
+}
+
 // SC18IS600 ignore the least significant bit of slave address and set it to 1 to read
-byte SC_get_read_address(address) {
+byte SC_get_read_address(byte address) {
 	return address | 0b00000001;
 }
 
 // SC18IS600 ignore the least significant bit of slave address and set it to 0 to write
-byte SC_get_write_address(address) {
+byte SC_get_write_address(byte address) {
 	return address & 0b11111110;
 }
 
-int main (void)
-{
+int main(void) {
 	/* Insert system clock initialization code here (sysclk_init()). */
-	
-//	clock();
-	
-//	TCCR0A
+	//	clock();
+	//	TCCR0A
 
-	ioport_init();
-	SPI_MasterInit();
-
-	delay_ms(40);
-	ioport_set_pin_dir	( LED,  IOPORT_DIR_OUTPUT);
-	ioport_set_pin_level( LED,	IOPORT_PIN_LEVEL_HIGH);
-
-	ioport_set_pin_level( SS,  IOPORT_PIN_LEVEL_HIGH);
-	delay_ms(40);
-
-	SC_init();
-	delay_ms(40);
-	init_MPU6050();
+	init();
 	
-	delay_ms(40);
-	
-//	SC_read_I2C (50, 0x00000000);
+	//	SC_read_I2C (50, 0x00000000);
 	while(1){
 		ioport_toggle_pin_level(LED);
 		delay_ms(500);
@@ -259,8 +275,6 @@ int main (void)
 		recordAccelRegisters();
 		delay_ms(500);
 	}
-	
-	/* Insert application code here, after the board has been initialized. */
 }
 
 

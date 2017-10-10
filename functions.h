@@ -9,5 +9,5 @@ void SC_set_register(byte register, byte value);
 void SC_init (void);
 void init_MPU6050 (void);
 void recordAccelRegisters();
-byte SC_get_read_address(address);
-byte SC_get_write_address(address);
+byte SC_get_read_address(byte address);
+byte SC_get_write_address(byte address);
