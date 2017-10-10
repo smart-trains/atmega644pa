@@ -1,1 +1,0 @@
-/Library/Developer/CommandLineTools/usr/bin/cc -g -Wl,-search_paths_first -Wl,-headerpad_max_install_names  CMakeFiles/atmega644pa.dir/ASF/common/boards/user_board/init.c.o CMakeFiles/atmega644pa.dir/ASF/common/services/clock/mega/sysclk.c.o CMakeFiles/atmega644pa.dir/main.c.o  -o atmega644pa 
