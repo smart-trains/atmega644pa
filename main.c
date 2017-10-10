@@ -29,6 +29,7 @@
  * Support and FAQ: visit <a href="http://www.atmel.com/design-support/">Atmel Support</a>
  */
 #include "IncFile1.h"
+#include "functions.h"
 #include <stdio.h>
 #include "ASF.h"
 #include "time.h"
@@ -89,7 +90,7 @@ void SC_read_I2C(uint8_t num_of_bytes, byte slave_addr) {
 }
 
 // Reads the receiver buffer from SC18IS600
-char MCU_SC_read_buffer(uint8_t num_of_bytes) {
+void MCU_SC_read_buffer(uint8_t num_of_bytes, byte data[]) {
 	// Chip select SC18IS600.
 	SC_chip_select();
 
@@ -97,7 +98,6 @@ char MCU_SC_read_buffer(uint8_t num_of_bytes) {
 	SPI_MasterTransmit(SC18IS600_CMD_RDBUF);
 
 	// Construct an array to host the returned data.
-	byte data[num_of_bytes];
 	
 	uint8_t i = 0;
 	for (i = 0; i < num_of_bytes; i++) {
@@ -107,9 +107,6 @@ char MCU_SC_read_buffer(uint8_t num_of_bytes) {
 	
 	// Unselect sc18.
 	SC_chip_unselect();
-
-	// Return the received data.
-	return data;
 }
 
 
@@ -135,14 +132,14 @@ void MCU_SC_write (byte address, int num_of_bytes, char data[]) {
 }
 
 // Sets SC18IS600 registers.
-void SC_set_register(byte register, byte value) {	//set sc18 register
+void SC_set_register(byte reg_address, byte value) {	//set sc18 register
 	// Chip select SC18IS600.
 	SC_chip_select();
 
 	// Commend for writing to SC18IS600 internal register.
 	SPI_MasterTransmit(SC18IS600_CMD_WRREG);
 	// Select which register to write.
-	SPI_MasterTransmit(register);
+	SPI_MasterTransmit(reg_address);
 	// Write the value to the sepcified address.
 	SPI_MasterTransmit(value);
 	
@@ -187,6 +184,13 @@ void init_MPU6050 (void) {
 //  Wire.endTransmission();
 }
 
+	byte testd0=0;
+	byte testd1=0;
+	byte testd2=0;
+	byte testd3=0;
+	byte testd4=0;
+	byte testd5=0;
+
 void recordAccelRegisters() {
 	char AR = 0x3B;
 	MCU_SC_write (0b1101000, 1, AR);
@@ -198,12 +202,22 @@ void recordAccelRegisters() {
 	interup = ioport_get_pin_level(INT_SC);
 	while(ioport_get_pin_level(INT_SC));
 //	while(Wire.available() < 6);
-	accelX = MCU_SC_read_buffer()<<8|MCU_SC_read_buffer(); //Store first two bytes into accelX
-	accelY = MCU_SC_read_buffer()<<8|MCU_SC_read_buffer(); //Store middle two bytes into accelY
-	accelZ = MCU_SC_read_buffer()<<8|MCU_SC_read_buffer(); //Store last two bytes into accelZ
+	byte data[6] = {0};
+	MCU_SC_read_buffer(6, data);
+
+	accelX = data[0]<<8|data[1]; //Store first two bytes into accelX
+	accelY = data[2]<<8|data[3]; //Store middle two bytes into accelY
+	accelZ = data[4]<<8|data[5]; //Store last two bytes into accelZ
 	gForceX = accelX / 16384.0;
 	gForceY = accelY / 16384.0;
 	gForceZ = accelZ / 16384.0;	//processAccelData
+	
+	testd0 = data[0];
+	testd1 = data[1];
+	testd2 = data[2];
+	testd3 = data[3];
+	testd4 = data[4];
+	testd5 = data[5];
 }
 
 // SC18IS600 ignore the least significant bit of slave address and set it to 1 to read
