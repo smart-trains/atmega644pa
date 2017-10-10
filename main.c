@@ -236,7 +236,7 @@ int main (void)
 
 	SC_init();
 	delay_ms(40);
-	init_MPU6050 ();
+	init_MPU6050();
 	
 	delay_ms(40);
 	

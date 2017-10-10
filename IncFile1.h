@@ -5,6 +5,7 @@
  *  Author: SoraJ
  */
 
+#include "functions.h"
 #include "ioport.h"
 #include <avr/io.h>
 //#include "iom644pa.h"
