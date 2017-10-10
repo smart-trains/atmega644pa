@@ -32,6 +32,8 @@ typedef uint8_t byte;
 #define CS_SC IOPORT_CREATE_PIN(PORTA, 6)
 #define INT_SC IOPORT_CREATE_PIN(PORTD, 3)
 
+
+
 // MPU6050
 long accelX, accelY, accelZ;
 float gForceX, gForceY, gForceZ;

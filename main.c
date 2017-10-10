@@ -155,6 +155,8 @@ void SC_set_register(byte reg_address, byte value) {	//set sc18 register
 // TODO: SC18IS600 Initialisation
 void SC_init (void) {
 	// Chip select SC18IS600.
+	ioport_set_pin_dir	( INT_SC,  IOPORT_DIR_INPUT);
+	
 	SC_chip_select();
 
 	// Set clock decimal to 5.
@@ -190,20 +192,21 @@ void init_MPU6050 (void) {
 }
 
 void recordAccelRegisters() {
-	
+	const uint8_t bytes_to_read = 6;
+
 	interup = ioport_get_pin_level(INT_SC);
-	char AR = 0x3B;
-	MCU_SC_write (0b1101000, 1, AR);
+	byte AR[] = {0x3B};
+	MCU_SC_write(0b1101000, 1, AR);
 //	Wire.beginTransmission(0b1101000); //I2C address of the MPU
 //	Wire.write(0x3B); //Starting register for Accel Readings
 //	Wire.endTransmission();
-	SC_read_I2C (6, 0b1101000);
+	SC_read_I2C(bytes_to_read, 0b1101000);
 //	Wire.requestFrom(0b1101000,6); //Request Accel Registers (3B - 40)
 
 	while(ioport_get_pin_level(INT_SC));
 //	while(Wire.available() < 6);
 	byte data[6] = {0};
-	MCU_SC_read_buffer(6, data);
+	MCU_SC_read_buffer(bytes_to_read, data);
     
 	accelX = data[0]<<8|data[1]; //Store first two bytes into accelX
 	accelY = data[2]<<8|data[3]; //Store middle two bytes into accelY
@@ -230,9 +233,10 @@ int main (void)
 //	clock();
 	
 //	TCCR0A
+
 	ioport_init();
 	SPI_MasterInit();
-	
+
 	delay_ms(40);
 	ioport_set_pin_dir	( LED,  IOPORT_DIR_OUTPUT);
 	ioport_set_pin_level( LED,	IOPORT_PIN_LEVEL_HIGH);
