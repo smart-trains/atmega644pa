@@ -98,11 +98,14 @@ void MCU_SC_read_buffer(uint8_t num_of_bytes, byte data[]) {
 	SPI_MasterTransmit(SC18IS600_CMD_RDBUF);
 
 	// Construct an array to host the returned data.
+	byte temp;
 	
 	uint8_t i = 0;
 	for (i = 0; i < num_of_bytes; i++) {
 		// Dummy data is sent for SPI read.
-		data[i] = SPI_MasterTransmit(0);
+		temp = SPI_MasterTransmit(0);
+		data[i] = temp;
+		
 	}
 	
 	// Unselect sc18.
@@ -192,6 +195,8 @@ void init_MPU6050 (void) {
 	byte testd5=0;
 
 void recordAccelRegisters() {
+	
+	interup = ioport_get_pin_level(INT_SC);
 	char AR = 0x3B;
 	MCU_SC_write (0b1101000, 1, AR);
 //	Wire.beginTransmission(0b1101000); //I2C address of the MPU
@@ -199,12 +204,12 @@ void recordAccelRegisters() {
 //	Wire.endTransmission();
 	SC_read_I2C (6, 0b1101000);
 //	Wire.requestFrom(0b1101000,6); //Request Accel Registers (3B - 40)
-	interup = ioport_get_pin_level(INT_SC);
+
 	while(ioport_get_pin_level(INT_SC));
 //	while(Wire.available() < 6);
 	byte data[6] = {0};
 	MCU_SC_read_buffer(6, data);
-
+    
 	accelX = data[0]<<8|data[1]; //Store first two bytes into accelX
 	accelY = data[2]<<8|data[3]; //Store middle two bytes into accelY
 	accelZ = data[4]<<8|data[5]; //Store last two bytes into accelZ
