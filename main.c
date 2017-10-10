@@ -26,7 +26,7 @@
  * Atmel Software Framework (ASF).
  */
 /*
- * Support and FAQ: visit <a href="http://www.atmel.com/design-support/"`Atmel Support</a>
+ * Support and FAQ: visit <a href="http://www.atmel.com/design-support/">Atmel Support</a>
  */
 #include "IncFile1.h"
 #include "functions.h"
@@ -45,15 +45,16 @@ bool interup;
 // Initialises SPI bus.
 void SPI_MasterInit(void) {
 	// Set MOSI and SCK output, all others input.
+	ioport_set_pin_dir(MISO,  IOPORT_DIR_INPUT);
 	ioport_set_pin_dir(MOSI,  IOPORT_DIR_OUTPUT);
 	ioport_set_pin_dir(SCK,  IOPORT_DIR_OUTPUT);
+	ioport_set_pin_dir(SS,  IOPORT_DIR_OUTPUT);
 
 	// Enable SPI, Master, set clock rate fck/16.
 	SPCR = _BV(SPE) | _BV(MSTR) | _BV(SPR0);
 }
 
 // Send and read data from SPI bus.
-// Caution: USE WITH ONE BYTE ONLY.
 byte SPI_MasterTransmit(byte cData) {
 	// Start transmission
 	SPDR = cData;
@@ -107,11 +108,16 @@ void MCU_SC_read_buffer(uint8_t num_of_bytes, byte data[]) {
 
 	// Actually reading the buffer.
 	SPI_MasterTransmit(SC18IS600_CMD_RDBUF);
+
+	// Construct an array to host the returned data.
+	byte temp;
 	
 	uint8_t i = 0;
 	for (i = 0; i < num_of_bytes; i++) {
 		// Dummy data is sent for SPI read.
-		data[i] = SPI_MasterTransmit(0);
+		temp = SPI_MasterTransmit(0);
+		data[i] = temp;
+		
 	}
 	
 	// Unselect sc18.
@@ -194,6 +200,8 @@ void init_MPU6050 (void) {
 }
 
 void recordAccelRegisters() {
+	
+	interup = ioport_get_pin_level(INT_SC);
 	char AR = 0x3B;
 	MCU_SC_write (0b1101000, 1, AR);
 //	Wire.beginTransmission(0b1101000); //I2C address of the MPU
@@ -201,15 +209,15 @@ void recordAccelRegisters() {
 //	Wire.endTransmission();
 	SC_read_I2C (6, 0b1101000);
 //	Wire.requestFrom(0b1101000,6); //Request Accel Registers (3B - 40)
-	interup = ioport_get_pin_level(INT_SC);
+
 	while(ioport_get_pin_level(INT_SC));
 //	while(Wire.available() < 6);
 	byte data[6] = {0};
 	MCU_SC_read_buffer(6, data);
-
-	accelX = data[0]<<8 | data[1]; //Store first two bytes into accelX
-	accelY = data[2]<<8 | data[3]; //Store middle two bytes into accelY
-	accelZ = data[4]<<8 | data[5]; //Store last two bytes into accelZ
+    
+	accelX = data[0]<<8|data[1]; //Store first two bytes into accelX
+	accelY = data[2]<<8|data[3]; //Store middle two bytes into accelY
+	accelZ = data[4]<<8|data[5]; //Store last two bytes into accelZ
 	gForceX = accelX / 16384.0;
 	gForceY = accelY / 16384.0;
 	gForceZ = accelZ / 16384.0;	//processAccelData
@@ -233,14 +241,13 @@ int main (void)
 	
 //	TCCR0A
 	ioport_init();
+	SPI_MasterInit();
+	
 	delay_ms(40);
 	ioport_set_pin_dir	( LED,  IOPORT_DIR_OUTPUT);
 	ioport_set_pin_level( LED,	IOPORT_PIN_LEVEL_HIGH);
-	
-	ioport_set_pin_dir	( SPI_SS,  IOPORT_DIR_OUTPUT);
+
 	ioport_set_pin_level( SPI_SS,  IOPORT_PIN_LEVEL_HIGH);
-	
-	SPI_MasterInit();
 	delay_ms(40);
 
 	SC_init();
@@ -289,4 +296,3 @@ char SPI_send (char byte) { // mcu sends a byte to spi bus
 // 	while(ioport_get_pin_level(INT_SC));	//maybe should change here!!!!!!!!!! watch the register state
 // 	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_HIGH);	//unselect sc18
 // }
-
