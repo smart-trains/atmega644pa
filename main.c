@@ -115,7 +115,7 @@ void MCU_SC_read_buffer(uint8_t num_of_bytes, byte data[]) {
 
 
 // Writes data to slave through SC18IS600
-void MCU_SC_write (byte address, int num_of_bytes, char data[]) {
+void MCU_SC_write (byte address, uint8_t num_of_bytes, byte data[]) {
 	// Chip select SC18IS600.
 	SC_chip_select();
 
