@@ -74,17 +74,6 @@ byte SPI_MasterTransmit(byte cData) {
 	return SPDR;
 }
 
-// Chip select SC18IS600.
-void SC_chip_select(void) {
-	ioport_set_pin_dir(CS_SC, IOPORT_DIR_OUTPUT);
-	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_LOW);
-}
-
-// Chip unselect SC18IS600.
-void SC_chip_unselect(void) {
-	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_HIGH);
-}
-
 // SC reads N bytes from sensors into its receiver buffer.
 void SC_read_I2C(uint8_t num_of_bytes, byte slave_addr) {
 	// Chip select SC18IS600.
@@ -200,20 +189,21 @@ void init_MPU6050 (void) {
 }
 
 void recordAccelRegisters() {
-	
+	uint8_t bytes_to_read = 6;
+
 	interup = ioport_get_pin_level(INT_SC);
-	char AR = 0x3B;
-	MCU_SC_write (0b1101000, 1, AR);
+	byte AR = [0x3B];
+	MCU_SC_write(0b1101000, 1, AR);
 //	Wire.beginTransmission(0b1101000); //I2C address of the MPU
 //	Wire.write(0x3B); //Starting register for Accel Readings
 //	Wire.endTransmission();
-	SC_read_I2C (6, 0b1101000);
+	SC_read_I2C(bytes_to_read, 0b1101000);
 //	Wire.requestFrom(0b1101000,6); //Request Accel Registers (3B - 40)
 
 	while(ioport_get_pin_level(INT_SC));
 //	while(Wire.available() < 6);
-	byte data[6] = {0};
-	MCU_SC_read_buffer(6, data);
+	byte data[bytes_to_read] = {0};
+	MCU_SC_read_buffer(bytes_to_read, data);
     
 	accelX = data[0]<<8|data[1]; //Store first two bytes into accelX
 	accelY = data[2]<<8|data[3]; //Store middle two bytes into accelY
@@ -221,6 +211,17 @@ void recordAccelRegisters() {
 	gForceX = accelX / 16384.0;
 	gForceY = accelY / 16384.0;
 	gForceZ = accelZ / 16384.0;	//processAccelData
+}
+
+// Chip select SC18IS600.
+void SC_chip_select(void) {
+	ioport_set_pin_dir(CS_SC, IOPORT_DIR_OUTPUT);
+	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_LOW);
+}
+
+// Chip unselect SC18IS600.
+void SC_chip_unselect(void) {
+	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_HIGH);
 }
 
 // SC18IS600 ignore the least significant bit of slave address and set it to 1 to read
@@ -242,7 +243,7 @@ int main (void)
 //	TCCR0A
 	ioport_init();
 	SPI_MasterInit();
-	
+
 	delay_ms(40);
 	ioport_set_pin_dir	( LED,  IOPORT_DIR_OUTPUT);
 	ioport_set_pin_level( LED,	IOPORT_PIN_LEVEL_HIGH);
