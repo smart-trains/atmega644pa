@@ -1,0 +1,35 @@
+/*
+ * IncFile1.h
+ *
+ * Created: 5/09/2017 4:33:30 PM
+ *  Author: SoraJ
+ */ 
+
+/*SET and GET MACRO*/
+
+
+#define SET(PORT,MASK,VALUE) PORT = ((MASK & VALUE) | (PORT & ~MASK))
+#define GET(PORT,MASK) PORT & MASK
+
+
+
+#define  LED     IOPORT_CREATE_PIN(PORTB, 3)//LED pin: PB3
+
+#define MOSI		IOPORT_CREATE_PIN(MOSI_PORT, MOSI_BIT)
+#define MISO		IOPORT_CREATE_PIN(MISO_PORT, MISO_BIT)
+#define SCK			IOPORT_CREATE_PIN(SCK_PORT, SCK_BIT)
+
+#define CS_SC		IOPORT_CREATE_PIN(PORTA, 6)
+
+#define SPI_SS		IOPORT_CREATE_PIN(SS_PORT, SS_BIT)
+
+
+
+#ifndef INCFILE1_H_
+#define INCFILE1_H_
+
+
+
+
+
+#endif /* INCFILE1_H_ */
