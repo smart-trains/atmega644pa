@@ -53,6 +53,17 @@ void SPI_MasterInit(void) {
 }
 
 // Send and read data from SPI bus.
+// Caution: USE WITH ONE BYTE ONLY.
+byte SPI_MasterTransmit(byte cData) {
+	// Start transmission
+	SPDR = cData;
+
+	// Wait for transmission complete
+	while(!( SPSR & _BV(SPIF) ));
+	return SPDR;
+}
+
+// Send and read data from SPI bus.
 byte SPI_MasterTransmit(byte cData) {
 	// Start transmission
 	SPDR = cData;
@@ -205,9 +216,9 @@ void recordAccelRegisters() {
 	byte data[6] = {0};
 	MCU_SC_read_buffer(6, data);
 
-	accelX = data[0]<<8|data[1]; //Store first two bytes into accelX
-	accelY = data[2]<<8|data[3]; //Store middle two bytes into accelY
-	accelZ = data[4]<<8|data[5]; //Store last two bytes into accelZ
+	accelX = data[0]<<8 | data[1]; //Store first two bytes into accelX
+	accelY = data[2]<<8 | data[3]; //Store middle two bytes into accelY
+	accelZ = data[4]<<8 | data[5]; //Store last two bytes into accelZ
 	gForceX = accelX / 16384.0;
 	gForceY = accelY / 16384.0;
 	gForceZ = accelZ / 16384.0;	//processAccelData
