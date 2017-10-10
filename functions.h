@@ -1,8 +1,8 @@
 void init(void);
 void init_MPU6050(void);
 void SC_init(void);
-
 void SPI_MasterInit(void);
+
 byte SPI_MasterTransmit(byte cData);
 
 void MCU_SC_read_buffer(uint8_t num_of_bytes, byte data[]);
