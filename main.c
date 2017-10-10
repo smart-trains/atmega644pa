@@ -102,6 +102,7 @@ char SPI_read_buf (void) { // mcu reads a register from SC16IS600
 	return readdata; // receive the read data
 }
 
+
 void SPI_write (uint8_t address, int numofbytes, char data1[]) { // mcu writes data to slave through SC16IS600
 	ioport_set_pin_dir(CS_SC, IOPORT_DIR_OUTPUT);
 	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_LOW);	//select sc18
@@ -126,7 +127,7 @@ void SC18_set_rgst(char reg, char cmd) {	//set sc18 register
 }
 
 // SC18IS800 Initial (unfinished)
-void init_SC16IS600 (void) {
+void init_SC18IS600 (void) {
 	ioport_set_pin_dir(CS_SC, IOPORT_DIR_OUTPUT);
 	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_LOW);	//select sc18
 	SC18_set_rgst(SC18IS600_I2CCLOCK,5);	//set clock decimal as 5
@@ -197,6 +198,8 @@ int main (void)
 	ioport_set_pin_level( SPI_SS,  IOPORT_PIN_LEVEL_HIGH);
 	
 	SPI_MasterInit();
+	delay_ms(40);
+	init_SC18IS600();
 	delay_ms(40);
 	init_MPU6050 ();
 	delay_ms(40);
