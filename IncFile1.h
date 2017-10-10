@@ -23,7 +23,7 @@ typedef uint8_t byte;
 #define LED IOPORT_CREATE_PIN(PORTB, 3)
 
 // SPI Bus
-#define SPI_SS IOPORT_CREATE_PIN(PORTB, 4)
+#define SS IOPORT_CREATE_PIN(PORTB, 4)
 #define MOSI IOPORT_CREATE_PIN(PORTB, 5)
 #define MISO IOPORT_CREATE_PIN(PORTB, 6)
 #define SCK IOPORT_CREATE_PIN(PORTB, 7)
@@ -31,6 +31,8 @@ typedef uint8_t byte;
 // SC16IS600
 #define CS_SC IOPORT_CREATE_PIN(PORTA, 6)
 #define INT_SC IOPORT_CREATE_PIN(PORTD, 3)
+
+
 
 // MPU6050
 long accelX, accelY, accelZ;

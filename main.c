@@ -64,14 +64,15 @@ byte SPI_MasterTransmit(byte cData) {
 	return SPDR;
 }
 
-// Send and read data from SPI bus.
-byte SPI_MasterTransmit(byte cData) {
-	// Start transmission
-	SPDR = cData;
+// Chip select SC18IS600.
+void SC_chip_select(void) {
+	ioport_set_pin_dir(CS_SC, IOPORT_DIR_OUTPUT);
+	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_LOW);
+}
 
-	// Wait for transmission complete
-	while(!( SPSR & _BV(SPIF) ));
-	return SPDR;
+// Chip unselect SC18IS600.
+void SC_chip_unselect(void) {
+	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_HIGH);
 }
 
 // SC reads N bytes from sensors into its receiver buffer.
@@ -154,6 +155,8 @@ void SC_set_register(byte reg_address, byte value) {	//set sc18 register
 // TODO: SC18IS600 Initialisation
 void SC_init (void) {
 	// Chip select SC18IS600.
+	ioport_set_pin_dir	( INT_SC,  IOPORT_DIR_INPUT);
+	
 	SC_chip_select();
 
 	// Set clock decimal to 5.
@@ -189,7 +192,7 @@ void init_MPU6050 (void) {
 }
 
 void recordAccelRegisters() {
-	uint8_t bytes_to_read = 6;
+	const uint8_t bytes_to_read = 6;
 
 	interup = ioport_get_pin_level(INT_SC);
 	byte AR[] = {0x3B};
@@ -202,7 +205,7 @@ void recordAccelRegisters() {
 
 	while(ioport_get_pin_level(INT_SC));
 //	while(Wire.available() < 6);
-	byte data[bytes_to_read] = {0};
+	byte data[6] = {0};
 	MCU_SC_read_buffer(bytes_to_read, data);
     
 	accelX = data[0]<<8|data[1]; //Store first two bytes into accelX
@@ -211,17 +214,6 @@ void recordAccelRegisters() {
 	gForceX = accelX / 16384.0;
 	gForceY = accelY / 16384.0;
 	gForceZ = accelZ / 16384.0;	//processAccelData
-}
-
-// Chip select SC18IS600.
-void SC_chip_select(void) {
-	ioport_set_pin_dir(CS_SC, IOPORT_DIR_OUTPUT);
-	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_LOW);
-}
-
-// Chip unselect SC18IS600.
-void SC_chip_unselect(void) {
-	ioport_set_pin_level(CS_SC,	IOPORT_PIN_LEVEL_HIGH);
 }
 
 // SC18IS600 ignore the least significant bit of slave address and set it to 1 to read
@@ -241,6 +233,7 @@ int main (void)
 //	clock();
 	
 //	TCCR0A
+
 	ioport_init();
 	SPI_MasterInit();
 
@@ -248,7 +241,7 @@ int main (void)
 	ioport_set_pin_dir	( LED,  IOPORT_DIR_OUTPUT);
 	ioport_set_pin_level( LED,	IOPORT_PIN_LEVEL_HIGH);
 
-	ioport_set_pin_level( SPI_SS,  IOPORT_PIN_LEVEL_HIGH);
+	ioport_set_pin_level( SS,  IOPORT_PIN_LEVEL_HIGH);
 	delay_ms(40);
 
 	SC_init();
