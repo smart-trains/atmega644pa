@@ -192,7 +192,7 @@ void recordAccelRegisters() {
 	uint8_t bytes_to_read = 6;
 
 	interup = ioport_get_pin_level(INT_SC);
-	byte AR = [0x3B];
+	byte AR = {0x3B};
 	MCU_SC_write(0b1101000, 1, AR);
 //	Wire.beginTransmission(0b1101000); //I2C address of the MPU
 //	Wire.write(0x3B); //Starting register for Accel Readings
