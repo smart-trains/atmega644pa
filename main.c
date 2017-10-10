@@ -26,7 +26,7 @@
  * Atmel Software Framework (ASF).
  */
 /*
- * Support and FAQ: visit <a href="http://www.atmel.com/design-support/">Atmel Support</a>
+ * Support and FAQ: visit <a href="http://www.atmel.com/design-support/"`Atmel Support</a>
  */
 #include "IncFile1.h"
 #include "functions.h"
@@ -107,8 +107,6 @@ void MCU_SC_read_buffer(uint8_t num_of_bytes, byte data[]) {
 
 	// Actually reading the buffer.
 	SPI_MasterTransmit(SC18IS600_CMD_RDBUF);
-
-	// Construct an array to host the returned data.
 	
 	uint8_t i = 0;
 	for (i = 0; i < num_of_bytes; i++) {
@@ -195,13 +193,6 @@ void init_MPU6050 (void) {
 //  Wire.endTransmission();
 }
 
-	byte testd0=0;
-	byte testd1=0;
-	byte testd2=0;
-	byte testd3=0;
-	byte testd4=0;
-	byte testd5=0;
-
 void recordAccelRegisters() {
 	char AR = 0x3B;
 	MCU_SC_write (0b1101000, 1, AR);
@@ -222,13 +213,6 @@ void recordAccelRegisters() {
 	gForceX = accelX / 16384.0;
 	gForceY = accelY / 16384.0;
 	gForceZ = accelZ / 16384.0;	//processAccelData
-	
-	testd0 = data[0];
-	testd1 = data[1];
-	testd2 = data[2];
-	testd3 = data[3];
-	testd4 = data[4];
-	testd5 = data[5];
 }
 
 // SC18IS600 ignore the least significant bit of slave address and set it to 1 to read
