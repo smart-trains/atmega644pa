@@ -1,4 +1,6 @@
 cmake-build-debug
 CMakeLists.txt
+CMakeLists.txt.sample
+generic-gcc-avr.cmake
 .idea
 
