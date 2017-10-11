@@ -29,21 +29,13 @@
 /*
  * System libraries.
  */
-#include <stdio.h>
 #include "ASF.h"
-#include "time.h"
-#include "ioport.h"
 #include "sfr_defs.h"
-#include <string.h>
-#include <stdlib.h>
-#include <jmorecfg.h>
-#include "macros.h"
 
 /*
  * IC libraries.
  */
 #include "sc18is600.h"
-
 
 /*
  * Project libraries.
@@ -215,7 +207,7 @@ void init_MPU6050(void) {
 void MPU_6050_read() {
     uint8_t bytes_to_read = 6;
 
-    boolean interrupt = ioport_get_pin_level(INT_SC);
+    bool interrupt = ioport_get_pin_level(INT_SC);
     long accelX, accelY, accelZ;
     float gForceX, gForceY, gForceZ;
 
