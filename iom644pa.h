@@ -37,13 +37,13 @@
 #ifndef _AVR_IO_H_
 #  error "Include <avr/io.h> instead of this file."
 #endif
-
+/*
 #ifndef _AVR_IOXXX_H_
 #  define _AVR_IOXXX_H_ "iom644PA.h"
 #else
 #  error "Attempt to include more than one <avr/ioXXX.h> file."
 #endif 
-
+*/
 
 #ifndef _AVR_ATmega644PA_H_
 #define _AVR_ATmega644PA_H_ 1

@@ -36,8 +36,8 @@
 #include "sfr_defs.h"
 #include <string.h>
 #include <stdlib.h>
-#include <jmorecfg.h>
 #include "macros.h"
+#include "iom644pa.h"
 
 /*
  * IC libraries.
@@ -55,8 +55,8 @@
 // Initialisations.
 void init() {
     ioport_init();
-    SPI_MasterInit();
-
+	
+	SPI_MasterInit();
     delay_ms(40);
     ioport_set_pin_dir(LED, IOPORT_DIR_OUTPUT);
     ioport_set_pin_level(LED, IOPORT_PIN_LEVEL_HIGH);
@@ -64,6 +64,7 @@ void init() {
     ioport_set_pin_level(SS, IOPORT_PIN_LEVEL_HIGH);
     delay_ms(40);
 
+  
     SC_init();
     delay_ms(40);
     init_MPU6050();
@@ -79,8 +80,8 @@ void SPI_MasterInit(void) {
     ioport_set_pin_dir(SCK, IOPORT_DIR_OUTPUT);
     ioport_set_pin_dir(SS, IOPORT_DIR_OUTPUT);
 
-    // Enable SPI, Master, set clock rate fck/16.
-    SPCR = _BV(SPE) | _BV(MSTR) | _BV(SPR0);
+    // Enable SPI, Master, set clock rate fck/128.
+    SPCR = _BV(SPE) | _BV(MSTR) | _BV(SPR0) | _BV(SPR1) ;
 }
 
 // Send and read data from SPI bus.
@@ -92,7 +93,7 @@ byte SPI_MasterTransmit(byte cData) {
     while (!(SPSR & _BV(SPIF)));
     return SPDR;
 }
-
+byte testfuck;
 // SC reads N bytes from sensors into its receiver buffer.
 void SC_read_I2C(uint8_t num_of_bytes, byte slave_addr) {
     // Chip select SC18IS600.
@@ -101,7 +102,7 @@ void SC_read_I2C(uint8_t num_of_bytes, byte slave_addr) {
     // First commend byte for reading from I2C-bus slave device.
     SPI_MasterTransmit(SC18IS600_CMD_RDBLK);
     // Second commend byte that specifies the number of bytes to read.
-    SPI_MasterTransmit(num_of_bytes);
+    testfuck = SPI_MasterTransmit(num_of_bytes);
     // Thrid commend byte that specifies the slave address.
     SPI_MasterTransmit(SC_get_read_address(slave_addr));
 
@@ -124,8 +125,10 @@ void MCU_SC_read_buffer(uint8_t num_of_bytes, byte data[]) {
     for (i = 0; i < num_of_bytes; i++) {
         // Dummy data is sent for SPI read.
         temp = SPI_MasterTransmit(0);
-        data[i] = temp;
+        data[i] = temp;                                 
     }
+	byte testt = data[0];
+	byte testt2 = data[1];
 
     // Unselect sc18.
     SC_chip_unselect();
@@ -173,13 +176,23 @@ void SC_set_register(byte reg_address, byte value) {    //set sc18 register
 void SC_init(void) {
     // Chip select SC18IS600.
     ioport_set_pin_dir(INT_SC, IOPORT_DIR_INPUT);
+	
+	ioport_set_pin_dir(IO4_SC, IOPORT_DIR_OUTPUT);
+	ioport_set_pin_level(IO4_SC, IOPORT_PIN_LEVEL_LOW);
+	ioport_set_pin_dir(RST_SC, IOPORT_DIR_OUTPUT);
+	ioport_set_pin_level(RST_SC, IOPORT_PIN_LEVEL_LOW);
+	ioport_set_pin_level(RST_SC, IOPORT_PIN_LEVEL_HIGH);
+
 
     SC_chip_select();
 
-    // Set clock decimal to 5.
-    SC_set_register(SC18IS600_I2CCLOCK, 5);
+    // Set clock decimal to 32. Set clock rate fck/128.
+    SC_set_register(SC18IS600_I2CCLOCK, 32);
     // Set timeout as 1/2 second.
     SC_set_register(SC18IS600_I2CTO, 0b01111111);
+	
+	// Set timeout as 1/2 second.
+    SC_set_register(SC18IS600_I2CADR, 0b01010101);
 
     // Unselect sc18.
     SC_chip_unselect();
@@ -212,10 +225,10 @@ void init_MPU6050(void) {
     //  Wire.endTransmission();
 }
 
-void MPU_6050_read() {
+void MPU_6050_read(void) {
     uint8_t bytes_to_read = 6;
 
-    boolean interrupt = ioport_get_pin_level(INT_SC);
+    bool interrupt = ioport_get_pin_level(INT_SC);
     long accelX, accelY, accelZ;
     float gForceX, gForceY, gForceZ;
 
@@ -230,7 +243,8 @@ void MPU_6050_read() {
     SC_read_I2C(bytes_to_read, 0b1101000);
 //	Wire.requestFrom(0b1101000,6); //Request Accel Registers (3B - 40)
 
-    while (ioport_get_pin_level(INT_SC));
+	delay_ms(10);
+//	while (ioport_get_pin_level(INT_SC));
 //	while(Wire.available() < 6);
     byte data[6] = {0};
     MCU_SC_read_buffer(bytes_to_read, data);
