@@ -29,21 +29,16 @@
 /*
  * System libraries.
  */
-#include <stdio.h>
 #include "ASF.h"
-#include "time.h"
-#include "ioport.h"
 #include "sfr_defs.h"
-#include <string.h>
-#include <stdlib.h>
-#include "macros.h"
+
 #include "iom644pa.h"
+
 
 /*
  * IC libraries.
  */
 #include "sc18is600.h"
-
 
 /*
  * Project libraries.
