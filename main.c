@@ -60,7 +60,7 @@ void init() {
     delay_ms(40);
     ioport_set_pin_dir(LED, IOPORT_DIR_OUTPUT);
     ioport_set_pin_level(LED, IOPORT_PIN_LEVEL_HIGH);
-
+    ioport_set_pin_dir(SS, IOPORT_DIR_OUTPUT);	
     ioport_set_pin_level(SS, IOPORT_PIN_LEVEL_HIGH);
     delay_ms(40);
 
@@ -78,22 +78,22 @@ void SPI_MasterInit(void) {
     ioport_set_pin_dir(MISO, IOPORT_DIR_INPUT);
     ioport_set_pin_dir(MOSI, IOPORT_DIR_OUTPUT);
     ioport_set_pin_dir(SCK, IOPORT_DIR_OUTPUT);
-    ioport_set_pin_dir(SS, IOPORT_DIR_OUTPUT);
+    ioport_set_pin_dir(CS_SC, IOPORT_DIR_OUTPUT);
 
-    // Enable SPI, Master, set clock rate fck/128.
-    SPCR = _BV(SPE) | _BV(MSTR) | _BV(SPR0) | _BV(SPR1) ;
+    // Enable SPI, Master, set clock rate fck/128. SET Clock0 Polarity & Phase(15/10/2017).
+    SPCR = _BV(SPE) | _BV(MSTR) | _BV(SPR0) | _BV(SPR1)| _BV(CPOL)| _BV(CPHA) ;
 }
 
 // Send and read data from SPI bus.
 byte SPI_MasterTransmit(byte cData) {
     // Start transmission
-    SPDR = cData;
+    SPDR = cData;	
 
     // Wait for transmission complete
     while (!(SPSR & _BV(SPIF)));
     return SPDR;
 }
-byte testfuck;
+//byte testfuck;
 // SC reads N bytes from sensors into its receiver buffer.
 void SC_read_I2C(uint8_t num_of_bytes, byte slave_addr) {
     // Chip select SC18IS600.
@@ -102,7 +102,7 @@ void SC_read_I2C(uint8_t num_of_bytes, byte slave_addr) {
     // First commend byte for reading from I2C-bus slave device.
     SPI_MasterTransmit(SC18IS600_CMD_RDBLK);
     // Second commend byte that specifies the number of bytes to read.
-    testfuck = SPI_MasterTransmit(num_of_bytes);
+//	testfuck = SPI_MasterTransmit(num_of_bytes);
     // Thrid commend byte that specifies the slave address.
     SPI_MasterTransmit(SC_get_read_address(slave_addr));
 
@@ -193,6 +193,9 @@ void SC_init(void) {
 	
 	// Set SC address.
     SC_set_register(SC18IS600_I2CADR, 0b01010101);
+	
+	// Set SPI configuration to MSB first.
+	SC_set_register(SC18IS600_CMD_SPICON, 0x42);
 
     // Unselect sc18.
     SC_chip_unselect();
@@ -259,7 +262,6 @@ void MPU_6050_read(void) {
 
 // Chip select SC18IS600.
 void SC_chip_select(void) {
-    ioport_set_pin_dir(CS_SC, IOPORT_DIR_OUTPUT);
     ioport_set_pin_level(CS_SC, IOPORT_PIN_LEVEL_LOW);
 }
 
@@ -278,6 +280,19 @@ byte SC_get_write_address(byte address) {
     return address & (byte) 0b11111110;
 }
 
+
+
+/*
+ * Program constants
+ */
+const byte ADDR = 0b0001;
+const byte SLAVE = 0b0101;
+const byte SLAVE_RESP = 0b0100;	
+
+bool isCalled(byte ctrl) {
+	return ctrl == (SLAVE << 4) + ADDR;
+}
+
 int main(void) {
     /* Insert system clock initialization code here (sysclk_init()). */
     //	clock();
@@ -288,10 +303,6 @@ int main(void) {
 	rs485_init();
 	sei();
 	
-	rs485_send("Sha bi huo che\r\n");
-	
-
-    //	SC_read_I2C (50, 0x00000000);
     while (1) {
         ioport_toggle_pin_level(LED);
         delay_ms(500);
@@ -299,6 +310,14 @@ int main(void) {
         delay_ms(500);
         MPU_6050_read();
         delay_ms(500);
+		
+/*		// Test rs485 send.
+		char ctrl;
+		rs485_readln(ctrl,1);
+		if (isCalled(ctrl)){
+			rs485_send("Sha bi huo che\r\n");
+		}
+*/				
 		
     }
 }
