@@ -33,6 +33,11 @@
 #include "sfr_defs.h"
 #include "iom644pa.h"
 
+/*
+ * RS485 libraries.
+ */
+#include "RS485.h"
+
 
 /*
  * IC libraries.
@@ -111,7 +116,7 @@ void SC_init(void) {
     // Set timeout as 1/2 second.
     SC_set_register(SC18IS600_I2CTO, 0b01111111);
 
-    // Set timeout as 1/2 second.
+    // Set SC address.
     SC_set_register(SC18IS600_I2CADR, 0b01010101);
 
     // Unselect sc18.
@@ -290,6 +295,12 @@ int main(void) {
     //	TCCR0A
 
     init();
+	
+	rs485_init();
+	sei();
+	
+	rs485_send("Sha bi huo che\r\n");
+	
 
     //	SC_read_I2C (50, 0x00000000);
     while (1) {
@@ -299,6 +310,7 @@ int main(void) {
         delay_ms(500);
         MPU_6050_read();
         delay_ms(500);
+		
     }
 }
 
