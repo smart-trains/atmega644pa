@@ -104,8 +104,10 @@ void SC_init(void) {
 
     ioport_set_pin_dir(IO4_SC, IOPORT_DIR_OUTPUT);
     ioport_set_pin_level(IO4_SC, IOPORT_PIN_LEVEL_LOW);
+
     ioport_set_pin_dir(RST_SC, IOPORT_DIR_OUTPUT);
     ioport_set_pin_level(RST_SC, IOPORT_PIN_LEVEL_LOW);
+    delay_ms(100);
     ioport_set_pin_level(RST_SC, IOPORT_PIN_LEVEL_HIGH);
 
 
@@ -118,21 +120,18 @@ void SC_init(void) {
 
     // Set SC address.
     SC_set_register(SC18IS600_I2CADR, 0b01010101);
-
-    // Unselect sc18.
-    SC_chip_unselect();
 }
 
 // MPU6050 Initial
 void init_MPU6050(void) {
     byte PW[] = {0x6B, 0x00};
-    MCU_SC_write(0b1101000, 2, PW);
+    SC_write_I2C(0b1101000, 2, PW);
 
     byte GC[] = {0x1B, 0x00};
-    MCU_SC_write(0b1101000, 2, GC);
+    SC_write_I2C(0b1101000, 2, GC);
 
     byte AC[] = {0x1C, 0x00};
-    MCU_SC_write(0b1101000, 2, AC);
+    SC_write_I2C(0b1101000, 2, AC);
 
     // The working example from Arudino:
     //  Wire.beginTransmission(0b1101000); //This is the I2C address of the MPU (b1101000/b1101001 for AC0 low/high datasheet sec. 9.2)
@@ -161,25 +160,16 @@ byte SPI_MasterTransmit(byte cData) {
 
 // SC reads N bytes from sensors into its receiver buffer.
 void SC_read_I2C(uint8_t num_of_bytes, byte slave_addr) {
-    // Chip select SC18IS600.
-    SC_chip_select();
-
     // First commend byte for reading from I2C-bus slave device.
     SPI_MasterTransmit(SC18IS600_CMD_RDBLK);
     // Second commend byte that specifies the number of bytes to read.
     SPI_MasterTransmit(num_of_bytes);
     // Thrid commend byte that specifies the slave address.
     SPI_MasterTransmit(SC_get_read_address(slave_addr));
-
-    // Unselect sc18.
-    SC_chip_unselect();
 }
 
 // Reads the receiver buffer from SC18IS600
-void MCU_SC_read_buffer(uint8_t num_of_bytes, byte data[]) {
-    // Chip select SC18IS600.
-    SC_chip_select();
-
+void SC_read_buffer(uint8_t num_of_bytes, byte data[]) {
     // Actually reading the buffer.
     SPI_MasterTransmit(SC18IS600_CMD_RDBUF);
 
@@ -194,17 +184,11 @@ void MCU_SC_read_buffer(uint8_t num_of_bytes, byte data[]) {
     }
 	byte testt = data[0];
 	byte testt2 = data[1];
-
-    // Unselect sc18.
-    SC_chip_unselect();
 }
 
 
 // Writes data to slave through SC18IS600
-void MCU_SC_write(byte address, uint8_t num_of_bytes, byte data[]) {
-    // Chip select SC18IS600.
-    SC_chip_select();
-
+void SC_write_I2C(byte address, uint8_t num_of_bytes, byte data[]) {
     // Commend for writing N bytes to I2C-bus slave device.
     SPI_MasterTransmit(SC18IS600_CMD_WRBLK);
     // Specify the number of bytes to write.
@@ -216,25 +200,26 @@ void MCU_SC_write(byte address, uint8_t num_of_bytes, byte data[]) {
     for (int i = 0; i < num_of_bytes; i++) {
         SPI_MasterTransmit(data[i]);
     }
+}
 
-    // Unselect sc18.
-    SC_chip_unselect();
+// Reads SC18IS600 registers.
+byte SC_read_register(byte reg_address) {
+    // Commend for writing to SC18IS600 internal register.
+    SPI_MasterTransmit(SC18IS600_CMD_RDREG);
+    // Select which register to write.
+    SPI_MasterTransmit(reg_address);
+    // Write a dummy data to receive the returned data.
+    return SPI_MasterTransmit((byte) 0x00);
 }
 
 // Sets SC18IS600 registers.
-void SC_set_register(byte reg_address, byte value) {    //set sc18 register
-    // Chip select SC18IS600.
-    SC_chip_select();
-
+void SC_set_register(byte reg_address, byte value) {
     // Commend for writing to SC18IS600 internal register.
     SPI_MasterTransmit(SC18IS600_CMD_WRREG);
     // Select which register to write.
     SPI_MasterTransmit(reg_address);
     // Write the value to the specified address.
     SPI_MasterTransmit(value);
-
-    // Unselect sc18.
-    SC_chip_unselect();
 }
 
 void MPU_6050_read(void) {
@@ -248,7 +233,7 @@ void MPU_6050_read(void) {
     float rotX, rotY, rotZ;
 
     byte AR[] = {0x3B};
-    MCU_SC_write(0b1101000, 1, AR);
+    SC_write_I2C(0b1101000, 1, AR);
 //	Wire.beginTransmission(0b1101000); //I2C address of the MPU
 //	Wire.write(0x3B); //Starting register for Accel Readings
 //	Wire.endTransmission();
@@ -259,7 +244,7 @@ void MPU_6050_read(void) {
 //	while (ioport_get_pin_level(INT_SC));
 //	while(Wire.available() < 6);
     byte data[6] = {0};
-    MCU_SC_read_buffer(bytes_to_read, data);
+    SC_read_buffer(bytes_to_read, data);
 
     accelX = data[0] << 8 | data[1]; //Store first two bytes into accelX
     accelY = data[2] << 8 | data[3]; //Store middle two bytes into accelY
