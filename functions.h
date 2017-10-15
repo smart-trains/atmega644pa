@@ -1,4 +1,6 @@
 void init(void);
+void MCU_init(void);
+void LED_init(void);
 void init_MPU6050(void);
 void SC_init(void);
 void SPI_MasterInit(void);
