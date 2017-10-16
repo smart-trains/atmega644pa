@@ -306,12 +306,11 @@ int main(void) {
     //	TCCR0A
 
     init();
+	int xx=0;
+	xx=AMG8853_therm_temp();
+
 	
-	rs485_init();
-	sei();
-	
-	rs485_send("Sha bi huo che\r\n");
-	
+
 
     //	SC_read_I2C (50, 0x00000000);
     while (1) {
@@ -321,6 +320,9 @@ int main(void) {
         delay_ms(500);
         MPU_6050_read();
         delay_ms(500);
+		
+		int xx=0;
+		xx=AMG8853_therm_temp();
 		
     }
 }
@@ -359,6 +361,10 @@ void SC_read_after_write(uint8_t numofwrite, uint8_t numofread, uint8_t slaveadd
 
 
 //Cherry
+#define F_CPU 16000000UL
+#define F_SCL 100000UL // SCL frequency
+#define Prescaler 1
+#define TWBR_val ((((F_CPU / F_SCL) / Prescaler) - 16 ) / 2)
 
 //I2C
 void I2C_init(void)
@@ -505,7 +511,6 @@ void AMG8853_init(void){
 	I2C_Write_register(AMG8853_address, REG_RST, 0x3f,1);
 	//set frame rate
 	I2C_Write_register(AMG8853_address, REG_FPSC,0x00,1);
-	//set interrupt function
 	
 }
 
@@ -549,7 +554,7 @@ void AMG8853_generate_message(byte message[]){
 
 //HTU21D
 void HTU21D_init(void){
-	MCU_SC_write(HTU21D_Address, 1, SOFT_RESET);//soft reset the HTU21D
+	SC_write_I2C(HTU21D_Address, 1, SOFT_RESET);//soft reset the HTU21D
 	delay_ms(15);//reset time 15ms
 }
 
@@ -558,7 +563,7 @@ void HTU21D_set_resolution(char resolution){
 }
 
 void HTU21D_measure_temp(void){
-	MCU_SC_write(HTU21D_Address, 1, MEASURE_TEMPERATURE);//send measure temperature command
+	SC_write_I2C(HTU21D_Address, 1, MEASURE_TEMPERATURE);//send measure temperature command
 	delay_ms(T11bit_measure_time);
 }
 
@@ -569,7 +574,7 @@ float HTU21D_read_temp(void){
 //	uint8_t LSB, MSB=0;
 	float t=0, TEMP=0;
 	byte info[2]={1,1,1};
-	MCU_SC_read_buffer(3, info);
+	SC_read_buffer(3, info);
 	MSB = info[0];
 	LSB = info[1];
 	t=MSB*256+LSB;
