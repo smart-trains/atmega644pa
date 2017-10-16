@@ -110,7 +110,6 @@ void SC_init(void) {
     delay_ms(100);
     ioport_set_pin_level(RST_SC, IOPORT_PIN_LEVEL_HIGH);
 
-
     SC_chip_select();
 
     // Set clock decimal to 32. Set clock rate fck/128.
