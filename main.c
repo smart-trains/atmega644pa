@@ -50,6 +50,14 @@
 #include "base.h"
 #include "functions.h"
 
+//Cherry
+#include <util/twi.h>
+#include <htu21d.h>
+#include <avr/interrupt.h>
+#include <avr/io.h>
+#include <i2c_master.h>
+#include <AMG8853.h>
+
 
 // Initialisations.
 void init() {
@@ -67,6 +75,17 @@ void init() {
 
     init_MPU6050();
     delay_ms(40);
+    
+    HTU21D_init();
+	delay_ms(40);
+	
+	I2C_init();
+	delay_ms(40);
+	
+	interruptInit();
+	
+	AMG8853_init();
+	delay_ms(40);
 }
 
 // MCU initialisations.
@@ -95,6 +114,13 @@ void SPI_MasterInit(void) {
 
     // Enable SPI as Master, set clock rate fck/128, and operate as SPI mode 3.
     SPCR = _BV(SPE) | _BV(MSTR) | _BV(CPOL) | _BV(CPHA) | _BV(SPR1) | _BV(SPR0) ;
+}
+
+//Interrupt
+void interruptInit(void) {
+	sei();	// set global interrupt enable
+	SREG = _BV(INT0); //Interrupt 0 .  PD2
+	MCUCR = _BV(ISC00)|_BV(ISC01); //rising edge interrupt
 }
 
 // TODO: SC18IS600 Initialisation
@@ -308,6 +334,7 @@ char SPI_send (char byte) { // mcu sends a byte to spi bus
 	SPI_tx_completed = 0; // clear transmit spi interrupt flag
 	return SPDAT; // receive data on spi read
 }
+*/
 
 // TODO: the checking loop may be changed
 void SC_read_after_write(uint8_t numofwrite, uint8_t numofread, uint8_t slaveaddr,
@@ -327,4 +354,225 @@ void SC_read_after_write(uint8_t numofwrite, uint8_t numofread, uint8_t slaveadd
                 0b00000001;    //SC18IS600 ignore the least significant bit of slave address and set it to 1 to read
     while (ioport_get_pin_level(INT_SC));    //TODO: maybe should change here, watch the register state
     ioport_set_pin_level(CS_SC, IOPORT_PIN_LEVEL_HIGH);    //unselect sc18
+}
+
+
+//Cherry
+
+//I2C
+void I2C_init(void)
+{
+	//ioport_set_pin_dir(SCL, IOPORT_DIR_OUTPUT);
+	TWBR = (uint8_t)TWBR_val;
+}
+
+uint8_t I2C_Start(uint8_t Device_ADDRESS)
+{
+	//reset TWI control register
+	TWCR = 0;
+	// transmit START condition 
+	TWCR = _BV(TWEN) | _BV(TWSTA) | _BV(TWINT);
+	// wait for end of transmission
+	while( !(TWCR & (1<<TWINT)) );
+	
+	// check if the start condition was successfully transmitted
+	if((TWSR & 0xF8) != TW_START){ 
+		return 1;
+	 }
+	
+	// load slave address into data register
+	TWDR = Device_ADDRESS;
+	// start transmission of address
+	TWCR = _BV(TWINT) | _BV(TWEN);
+	// wait for end of transmission
+	while( !(TWCR & _BV(TWINT)) );
+	
+	// check if the device has acknowledged the READ / WRITE mode
+	uint8_t twst = TWSR & 0xF8;
+	if ( (twst != TW_MT_SLA_ACK) && (twst != TW_MR_SLA_ACK) ) return 1;
+	//if ((TWSR & 0xF8) != TW_MT_SLA_ACK) {
+		//return 1;
+	
+	return 0;
+}
+
+void I2C_Stop(void)
+{
+	// transmit STOP condition
+	TWCR = _BV(TWINT) | _BV(TWEN) | _BV(TWSTO);
+}
+
+uint8_t I2C_Write(uint8_t DATA) {
+	// load data into data register
+	TWDR = DATA;
+	// start transmission of data
+	TWCR = _BV(TWINT) | _BV(TWEN);
+	// wait for end of transmission
+	while( !(TWCR & _BV(TWINT)) );
+	
+	if( (TWSR & 0xF8) != TW_MT_DATA_ACK ){ return 1; }
+	
+	return 0;
+}
+
+uint8_t I2C_READ_ACK(void) {
+	// start TWI module and acknowledge data after reception
+	TWCR = _BV(TWINT) | _BV(TWEN) | _BV(TWEA); 
+	// wait for end of transmission
+	while( !(TWCR & _BV(TWINT)) );
+	// return received data from TWDR
+	return TWDR;
+}
+
+uint8_t I2C_READ_NACK(void) {
+	// start receiving without acknowledging reception
+	TWCR = _BV(TWINT) | _BV(TWEN);
+	// wait for end of transmission
+	while( !(TWCR & _BV(TWINT)) );
+	// return received data from TWDR
+	return TWDR;
+}
+
+/*uint8_t I2C_Transmit(uint8_t SLA_Address, uint8_t* DATA, uint16_t length)
+{
+	if (I2C_Start(SLA_Address & 0b11111110)) return 1;
+	
+	for (uint16_t i = 0; i < length; i++)
+	{
+		if (I2C_Write(DATA[i])) return 1;
+	}
+	
+	I2C_Stop();
+	
+	return 0;
 }*/
+
+/*uint8_t I2C_Receive(uint8_t SLA_Address, uint8_t* DATA, uint16_t length)
+{
+	if (I2C_Start(SLA_Address | 0x01)) return 1;
+	
+	for (uint16_t i = 0; i < (length-1); i++)
+	{
+		DATA[i] = I2C_READ_ACK();
+	}
+	DATA[(length-1)] = I2C_READ_NACK();
+	
+	I2C_Stop();
+	
+	return 0;
+}*/
+
+uint8_t I2C_Write_register(uint8_t devaddr, uint8_t regaddr, uint8_t* DATA, uint16_t length)
+{
+	if (I2C_Start(devaddr & 0b11111110)) return 1;
+
+	I2C_Write(regaddr);
+
+	for (uint16_t i = 0; i < length; i++)
+	{
+		if (I2C_Write(DATA[i])) return 1;
+	}
+
+	I2C_Stop();
+
+	return 0;
+}
+
+uint8_t I2C_Read_register(uint8_t devaddr, uint8_t regaddr, uint8_t* DATA, uint16_t length)
+{
+	if (I2C_Start(devaddr | 0x01)) return 1;
+
+	I2C_Write(regaddr);
+
+	//if (I2C_Start(devaddr | 0x01)) return 1;
+
+	for (uint16_t i = 0; i < (length-1); i++)
+	{
+		DATA[i] = I2C_READ_ACK();
+	}
+	DATA[(length-1)] = I2C_READ_NACK();
+
+	I2C_Stop();
+
+	return 0;
+}
+
+//Grid Eye AMG8853
+void AMG8853_init(void){
+	//ioport_set_pin_dir(SDA, IOPORT_DIR_OUTPUT);
+	//reset AMG8853
+	I2C_Write_register(AMG8853_address, REG_RST, 0x3f,1);
+	//set frame rate
+	I2C_Write_register(AMG8853_address, REG_FPSC,0x00,1);
+	//set interrupt function
+	
+}
+
+int AMG8853_therm_temp(void){
+	byte buf[2];
+	//byte buf2[1];
+	I2C_Read_register(AMG8853_address, REG_TOOL, buf, 2);
+	//I2C_Read_register(AMG8853_address, REG_TOOH, buf2, 1);
+	int AMG_temperature = ((buf[1] & 0x0f)<<8) | (buf[0]);
+	if (AMG_temperature>2047){
+		AMG_temperature=AMG_temperature-2048;
+		AMG_temperature=-AMG_temperature;
+	}
+	return AMG_temperature;
+}
+
+void AMG8853_pixel_out(int *pixel_buffer){
+	int temp;
+	byte i, j, buffer[32];
+	//ioport_set_pin_dir(SDA, IOPORT_DIR_INPUT);
+	for(i=0;i<4;i++){
+		I2C_Read_register(AMG8853_address,REG_PIXL+(i*0x20), buffer, sizeof(buffer)/sizeof(buffer[0]));
+		for(j=0; j<32; j+=2){
+			temp = ((buffer[j+1]&0x0f)<<8)|buffer[j];
+			if (temp>2047){
+				temp = temp-4096;
+			}
+			*pixel_buffer++ = temp;
+		}
+	}
+}
+
+void AMG8853_generate_message(byte message[]){
+	//construct message
+	message[MSG_ENV_INDEX]=AMG8853_therm_temp();
+	AMG8853_pixel_out(grid_lv);
+	for(int i=0; i<NUM_CELLS; i++){
+		message[MSG_GRID_INDEX+i]=(byte) grid_lv[i];
+	}
+}
+
+//HTU21D
+void HTU21D_init(void){
+	MCU_SC_write(HTU21D_Address, 1, SOFT_RESET);//soft reset the HTU21D
+	delay_ms(15);//reset time 15ms
+}
+
+void HTU21D_set_resolution(char resolution){
+	SC_set_register(HTU21D_Address, resolution);//write to register for setting resolution
+}
+
+void HTU21D_measure_temp(void){
+	MCU_SC_write(HTU21D_Address, 1, MEASURE_TEMPERATURE);//send measure temperature command
+	delay_ms(T11bit_measure_time);
+}
+
+uint8_t MSB=0;
+uint8_t LSB=0;
+float HTU21D_read_temp(void){
+	SC_read_I2C(3, HTU21D_Address);//send read temperature command
+//	uint8_t LSB, MSB=0;
+	float t=0, TEMP=0;
+	byte info[2]={1,1,1};
+	MCU_SC_read_buffer(3, info);
+	MSB = info[0];
+	LSB = info[1];
+	t=MSB*256+LSB;
+	TEMP=175.72*t/65536-46.85;
+//	return MSB;
+}
+
