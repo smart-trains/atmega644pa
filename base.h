@@ -55,4 +55,10 @@ char rxBuffer[RX_BUFFER_SIZE];
 uint8_t rxReadPos = 0;
 uint8_t rxWritePos = 0;
 
-//
+
+
+// I2C Bus
+#define SCL IOPORT_CREATE_PIN(PORTC, 0)
+#define SDA IOPORT_CREATE_PIN(PORTC, 1)
+#define INT_AMG IOPORT_CREATE_PIN(PORTD, 2)
+
