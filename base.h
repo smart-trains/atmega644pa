@@ -34,9 +34,31 @@ typedef uint8_t byte;
 // IO5 is not used.
 #define IO5_SC IOPORT_CREATE_PIN(PORTB, 0)
 #define IO4_SC IOPORT_CREATE_PIN(PORTB, 1)
+#define GPIO3_SC IOPORT_CREATE_PIN(PORTA, 3)
+#define GPIO2_SC IOPORT_CREATE_PIN(PORTA, 2)
+#define GPIO1_SC IOPORT_CREATE_PIN(PORTA, 1)
+#define GPIO0_SC IOPORT_CREATE_PIN(PORTA, 0)
 #define INT_SC IOPORT_CREATE_PIN(PORTD, 3)
+
+// RS485
+#define F_CPU 16000000
+#define BUAD 38400
+#define BRC ((F_CPU/16/BUAD)-1) //  Baud Rate Calculate
+#define TX_BUFFER_SIZE 128
+#define RX_BUFFER_SIZE 128
+
+char serialBuffer[TX_BUFFER_SIZE];
+uint8_t serialReadPos = 0;
+uint8_t serialWritePos = 0;
+
+char rxBuffer[RX_BUFFER_SIZE];
+uint8_t rxReadPos = 0;
+uint8_t rxWritePos = 0;
+
+
 
 // I2C Bus
 #define SCL IOPORT_CREATE_PIN(PORTC, 0)
 #define SDA IOPORT_CREATE_PIN(PORTC, 1)
 #define INT_AMG IOPORT_CREATE_PIN(PORTD, 2)
+

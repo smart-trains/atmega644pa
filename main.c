@@ -32,11 +32,8 @@
 #include "ASF.h"
 #include "sfr_defs.h"
 #include "iom644pa.h"
-
-/*
- * RS485 libraries.
- */
-#include "RS485.h"
+#include <stdlib.h>
+#include "string.h"
 
 
 /*
@@ -75,6 +72,9 @@ void init() {
 
     init_MPU6050();
     delay_ms(40);
+	
+	RS485_init();
+	delay_ms(40);
     
     HTU21D_init();
 	delay_ms(40);
@@ -127,13 +127,23 @@ void interruptInit(void) {
 void SC_init(void) {
     // Chip select SC18IS600.
     ioport_set_pin_dir(INT_SC, IOPORT_DIR_INPUT);
-
+/*	
+    ioport_set_pin_dir(IO5_SC, IOPORT_DIR_OUTPUT);
+    ioport_set_pin_level(IO5_SC, IOPORT_PIN_LEVEL_LOW);	
     ioport_set_pin_dir(IO4_SC, IOPORT_DIR_OUTPUT);
     ioport_set_pin_level(IO4_SC, IOPORT_PIN_LEVEL_LOW);
-
+    ioport_set_pin_dir(GPIO3_SC, IOPORT_DIR_OUTPUT);
+    ioport_set_pin_level(GPIO3_SC, IOPORT_PIN_LEVEL_LOW);
+	ioport_set_pin_dir(GPIO2_SC, IOPORT_DIR_OUTPUT);
+	ioport_set_pin_level(GPIO2_SC, IOPORT_PIN_LEVEL_LOW);
+	ioport_set_pin_dir(GPIO1_SC, IOPORT_DIR_OUTPUT);
+	ioport_set_pin_level(GPIO1_SC, IOPORT_PIN_LEVEL_LOW);	
+	ioport_set_pin_dir(GPIO0_SC, IOPORT_DIR_OUTPUT);
+	ioport_set_pin_level(GPIO0_SC, IOPORT_PIN_LEVEL_LOW);
+*/	
     ioport_set_pin_dir(RST_SC, IOPORT_DIR_OUTPUT);
     ioport_set_pin_level(RST_SC, IOPORT_PIN_LEVEL_LOW);
-    delay_ms(100);
+    delay_ms(10);
     ioport_set_pin_level(RST_SC, IOPORT_PIN_LEVEL_HIGH);
 
 
@@ -174,10 +184,25 @@ void init_MPU6050(void) {
     //  Wire.endTransmission();
 }
 
+void RS485_init(void) {
+	// set USART Baud Rate 0 Register Low and High byte
+	UBRR0H = (BRC >> 8);
+	UBRR0L = BRC;
+	// USART Transmitter Enable; TX Complete Interrupt Enable;
+	// Receiver Enable;
+	UCSR0B = _BV(TXEN0) | _BV(TXCIE0) | _BV(RXEN0) | _BV(RXCIE0);
+	// Set Character Size to 8-bit
+	UCSR0C = _BV(UCSZ01) | _BV(UCSZ00);
+	// set direction of XCK for USART
+	ioport_set_pin_dir(IO5_SC, IOPORT_DIR_OUTPUT);
+	// enable interrupt
+	sei();
+}
+
 // Send and read data from SPI bus.
 byte SPI_MasterTransmit(byte cData) {
     // Start transmission
-    SPDR = cData;
+    SPDR = cData;	
 
     // Wait for transmission complete
     while (!(SPSR & _BV(SPIF)));
@@ -300,27 +325,71 @@ byte SC_get_write_address(byte address) {
     return address & (byte) 0b11111110;
 }
 
-//byte message[66]={0};
+
+/*
+ * Program constants
+ */
+const byte ADDR = 0b0001;
+const byte SLAVE = 0b0101;
+const byte SLAVE_RESP = 0b0100;	
+
+bool isCalled(byte ctrl) {
+	return ctrl == (SLAVE << 4) + ADDR;
+}
+
+
+// RS485 part
+
+// tx
+void appendSerial(char c);
+void serialWrite(char c[]);
+// rx
+char getChar(void);
+char peekChar(void);
+
+// RS485 part end
+
+byte reg2;
+
+
 int main(void) {
     /* Insert system clock initialization code here (sysclk_init()). */
     //	clock();
     //	TCCR0A
 
     init();
+	
+	// RS485 test
+	serialWrite("begin testing RS485");
+	delay_ms(500);
+	char tt = getChar();
+	if( tt == '1') {
+	serialWrite("received");
+	}
+	else {serialWrite("unreceived");}
+	delay_ms(500);
+	// end RS485 test
+	
 	int xx=0;
 	xx=AMG8853_therm_temp();
 
-	
 
-
-    //	SC_read_I2C (50, 0x00000000);
     while (1) {
         ioport_toggle_pin_level(LED);
         delay_ms(500);
         ioport_toggle_pin_level(LED);
         delay_ms(500);
+
+
 //        MPU_6050_read();
 //        delay_ms(500);
+//		byte reg0 = SC_read_register(0x00);
+//		byte reg1 = SC_read_register(0x01);
+		reg2 = SC_read_register(0x02);
+//		byte reg3 = SC_read_register(0x03);
+//		byte reg4 = SC_read_register(0x04);
+//		byte reg5 = SC_read_register(0x05);
+		
 		
 		int xx=0;
 		xx=AMG8853_therm_temp();
@@ -333,6 +402,71 @@ int main(void) {
 		
     }
 }
+
+
+// RS485 functions
+void appendSerial(char c) {
+	serialBuffer[serialWritePos] = c;
+	serialWritePos++;
+	
+	if(serialWritePos >= TX_BUFFER_SIZE){
+		serialWritePos = 0;
+	}
+}
+// TX
+void serialWrite(char c[]) {
+	for(uint8_t i=0 ; i<strlen(c); i++) {
+		appendSerial(c[i]);
+	}
+	// Check if USART Data Register Empty (ready to receive new data, 1 means empty)
+	if(UCSR0A & _BV(UDRE0)) {
+		UDR0 = 0;
+	}
+}
+
+ISR(USART0_TX_vect) {
+	if(serialReadPos != serialWritePos) {
+		UDR0 = serialBuffer[serialReadPos];
+		serialReadPos++;
+		
+		if(serialReadPos >= TX_BUFFER_SIZE){
+			serialReadPos = 0;
+		}
+	}	
+}
+
+char peekChar(void) {
+	char ret = '\0';
+	
+	if(rxReadPos != rxWritePos) {
+		ret = rxBuffer[rxReadPos];
+	}
+	return ret;
+}
+// RX
+char getChar(void) {
+	char ret = '\0';
+	
+	if(rxReadPos != rxWritePos) {
+		ret = rxBuffer[rxReadPos];
+		rxReadPos++;
+		
+		if(rxReadPos >= RX_BUFFER_SIZE) {
+			rxReadPos = 0;
+		}
+	}
+	return ret;
+}
+
+ISR(USART0_RX_vect) {
+	rxBuffer[rxWritePos] = UDR0;
+	rxWritePos++;
+	
+	if(rxWritePos >= RX_BUFFER_SIZE) {
+		rxWritePos = 0;
+	}
+}
+// RS485 functions end
 
 
 /*
@@ -368,9 +502,11 @@ void SC_read_after_write(uint8_t numofwrite, uint8_t numofread, uint8_t slaveadd
 
 
 //Cherry
-#define F_CPU 16000000
+
+//#define F_CPU 16000000 //defined in base.h
 #define F_SCL 100000// SCL frequency
 #define Prescaler 1
+
 #define TWBR_val ((((F_CPU / F_SCL) / Prescaler) - 16 ) / 2)
 
 //I2C
