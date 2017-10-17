@@ -300,15 +300,15 @@ byte SC_get_write_address(byte address) {
     return address & (byte) 0b11111110;
 }
 
-//byte message[66]={0};
+byte grid_message[65]={0};
 int main(void) {
     /* Insert system clock initialization code here (sysclk_init()). */
     //	clock();
     //	TCCR0A
 
-    init();
-	int xx=0;
-	xx=AMG8853_therm_temp();
+//    init();
+//	int xx=0;
+//	xx=AMG8853_therm_temp();
 
 	
 
@@ -324,8 +324,8 @@ int main(void) {
 		
 		int xx=0;
 		xx=AMG8853_therm_temp();
-//		delay_ms(10);
-//		AMG8853_generate_message(message[66]);
+		delay_ms(10);
+		AMG8853_generate_message(grid_message);
 //		delay_ms(1000);
 		
 		
