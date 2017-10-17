@@ -136,6 +136,7 @@ void SC_init(void) {
     delay_ms(100);
     ioport_set_pin_level(RST_SC, IOPORT_PIN_LEVEL_HIGH);
 
+
     SC_chip_select();
 
     // Set clock decimal to 32. Set clock rate fck/128.
@@ -299,6 +300,7 @@ byte SC_get_write_address(byte address) {
     return address & (byte) 0b11111110;
 }
 
+//byte message[66]={0};
 int main(void) {
     /* Insert system clock initialization code here (sysclk_init()). */
     //	clock();
@@ -317,11 +319,17 @@ int main(void) {
         delay_ms(500);
         ioport_toggle_pin_level(LED);
         delay_ms(500);
-        MPU_6050_read();
-        delay_ms(500);
+//        MPU_6050_read();
+//        delay_ms(500);
 		
 		int xx=0;
 		xx=AMG8853_therm_temp();
+//		delay_ms(10);
+//		AMG8853_generate_message(message[66]);
+//		delay_ms(1000);
+		
+		
+		
 		
     }
 }
@@ -360,16 +368,18 @@ void SC_read_after_write(uint8_t numofwrite, uint8_t numofread, uint8_t slaveadd
 
 
 //Cherry
-#define F_CPU 16000000UL
-#define F_SCL 100000UL // SCL frequency
+#define F_CPU 16000000
+#define F_SCL 100000// SCL frequency
 #define Prescaler 1
 #define TWBR_val ((((F_CPU / F_SCL) / Prescaler) - 16 ) / 2)
 
 //I2C
 void I2C_init(void)
 {
-	//ioport_set_pin_dir(SCL, IOPORT_DIR_OUTPUT);
+	ioport_set_pin_dir(SCL, IOPORT_DIR_OUTPUT);
 	TWBR = (uint8_t)TWBR_val;
+	//TWSR = 0;
+	TWCR = _BV(TWEN);
 }
 
 uint8_t I2C_Start(uint8_t Device_ADDRESS)
@@ -377,7 +387,7 @@ uint8_t I2C_Start(uint8_t Device_ADDRESS)
 	//reset TWI control register
 	TWCR = 0;
 	// transmit START condition 
-	TWCR = _BV(TWEN) | _BV(TWSTA) | _BV(TWINT);
+	TWCR = _BV(TWEN) | _BV(TWSTA) | _BV(TWINT) | _BV(TWEA);
 	// wait for end of transmission
 	while( !(TWCR & (1<<TWINT)) );
 	
@@ -389,15 +399,17 @@ uint8_t I2C_Start(uint8_t Device_ADDRESS)
 	// load slave address into data register
 	TWDR = Device_ADDRESS;
 	// start transmission of address
-	TWCR = _BV(TWINT) | _BV(TWEN);
+	TWCR = _BV(TWINT) | _BV(TWEN) | _BV(TWEA);
+	//TWCR = TWCR & 0b11011111;
 	// wait for end of transmission
 	while( !(TWCR & _BV(TWINT)) );
-	
-	// check if the device has acknowledged the READ / WRITE mode
-	uint8_t twst = TWSR & 0xF8;
-	if ( (twst != TW_MT_SLA_ACK) && (twst != TW_MR_SLA_ACK) ) return 1;
-	//if ((TWSR & 0xF8) != TW_MT_SLA_ACK) {
-		//return 1;
+	uint8_t twst =TWSR & 0xF8;
+	// check if the device has acknowledged the READ / WRITE mode	uint8_t twst = TWSR & 0xF8;
+	if ( (twst != TW_MT_SLA_ACK) && (twst != TW_MR_SLA_ACK) ) {
+		return 1;
+		}
+	/*if ((TWSR & 0xF8) != TW_MT_SLA_ACK) {
+		return 1;}*/
 	
 	return 0;
 }
@@ -409,6 +421,14 @@ void I2C_Stop(void)
 }
 
 uint8_t I2C_Write(uint8_t DATA) {
+	/*TWCR = _BV(TWEN) | _BV(TWSTA) | _BV(TWINT);
+	// wait for end of transmission
+	while( !(TWCR & (1<<TWINT)) );
+	
+	// check if the start condition was successfully transmitted
+	if((TWSR & 0xF8) != TW_START){
+		return 1;
+	}*/
 	// load data into data register
 	TWDR = DATA;
 	// start transmission of data
@@ -417,7 +437,6 @@ uint8_t I2C_Write(uint8_t DATA) {
 	while( !(TWCR & _BV(TWINT)) );
 	
 	if( (TWSR & 0xF8) != TW_MT_DATA_ACK ){ return 1; }
-	
 	return 0;
 }
 
@@ -439,40 +458,20 @@ uint8_t I2C_READ_NACK(void) {
 	return TWDR;
 }
 
-/*uint8_t I2C_Transmit(uint8_t SLA_Address, uint8_t* DATA, uint16_t length)
-{
-	if (I2C_Start(SLA_Address & 0b11111110)) return 1;
-	
-	for (uint16_t i = 0; i < length; i++)
-	{
-		if (I2C_Write(DATA[i])) return 1;
-	}
-	
-	I2C_Stop();
-	
-	return 0;
-}*/
-
-/*uint8_t I2C_Receive(uint8_t SLA_Address, uint8_t* DATA, uint16_t length)
-{
-	if (I2C_Start(SLA_Address | 0x01)) return 1;
-	
-	for (uint16_t i = 0; i < (length-1); i++)
-	{
-		DATA[i] = I2C_READ_ACK();
-	}
-	DATA[(length-1)] = I2C_READ_NACK();
-	
-	I2C_Stop();
-	
-	return 0;
-}*/
 
 uint8_t I2C_Write_register(uint8_t devaddr, uint8_t regaddr, uint8_t* DATA, uint16_t length)
 {
 	if (I2C_Start(devaddr & 0b11111110)) return 1;
 
 	I2C_Write(regaddr);
+	/*// load data into data register
+	TWDR = regaddr;
+	// start transmission of data
+	TWCR = _BV(TWINT) | _BV(TWEN);
+	// wait for end of transmission
+	while( !(TWCR & _BV(TWINT)) );
+	
+	if( (TWSR & 0xF8) != TW_MT_DATA_ACK ){ return 1; }*/
 
 	for (uint16_t i = 0; i < length; i++)
 	{
@@ -486,11 +485,19 @@ uint8_t I2C_Write_register(uint8_t devaddr, uint8_t regaddr, uint8_t* DATA, uint
 
 uint8_t I2C_Read_register(uint8_t devaddr, uint8_t regaddr, uint8_t* DATA, uint16_t length)
 {
-	if (I2C_Start(devaddr | 0x01)) return 1;
+	if (I2C_Start(devaddr & 0b11111110)) return 1;
 
 	I2C_Write(regaddr);
+	/*// load data into data register
+	TWDR = regaddr;
+	// start transmission of data
+	TWCR = _BV(TWINT) | _BV(TWEN);
+	// wait for end of transmission
+	while( !(TWCR & _BV(TWINT)) );
+	
+	if( (TWSR & 0xF8) != TW_MT_DATA_ACK ){ return 1; }*/
 
-	//if (I2C_Start(devaddr | 0x01)) return 1;
+	if (I2C_Start(devaddr | 0x01)) return 1;
 
 	for (uint16_t i = 0; i < (length-1); i++)
 	{
@@ -507,18 +514,18 @@ uint8_t I2C_Read_register(uint8_t devaddr, uint8_t regaddr, uint8_t* DATA, uint1
 void AMG8853_init(void){
 	//ioport_set_pin_dir(SDA, IOPORT_DIR_OUTPUT);
 	//reset AMG8853
-	I2C_Write_register(AMG8853_address, REG_RST, 0x3f,1);
+	I2C_Write_register(AMG8853_address, REG_RST, 0x3f, 1);
 	//set frame rate
-	I2C_Write_register(AMG8853_address, REG_FPSC,0x00,1);
+	I2C_Write_register(AMG8853_address, REG_FPSC, 0x00, 1);
 	
 }
 
 int AMG8853_therm_temp(void){
-	byte buf[2];
+	byte buf[2]={2,4};
 	//byte buf2[1];
 	I2C_Read_register(AMG8853_address, REG_TOOL, buf, 2);
 	//I2C_Read_register(AMG8853_address, REG_TOOH, buf2, 1);
-	int AMG_temperature = ((buf[1] & 0x0f)<<8) | (buf[0]);
+	uint16_t AMG_temperature = ((buf[1] & 0x0f)<<8) | (buf[0]);
 	if (AMG_temperature>2047){
 		AMG_temperature=AMG_temperature-2048;
 		AMG_temperature=-AMG_temperature;
@@ -529,7 +536,6 @@ int AMG8853_therm_temp(void){
 void AMG8853_pixel_out(int *pixel_buffer){
 	int temp;
 	byte i, j, buffer[32];
-	//ioport_set_pin_dir(SDA, IOPORT_DIR_INPUT);
 	for(i=0;i<4;i++){
 		I2C_Read_register(AMG8853_address,REG_PIXL+(i*0x20), buffer, sizeof(buffer)/sizeof(buffer[0]));
 		for(j=0; j<32; j+=2){
