@@ -1,11 +1,8 @@
 #ifndef I2C_MASTER_H
 #define I2C_MASTER_H
 
-#define I2C_READ 0x01
-#define I2C_WRITE 0x00
-
 void I2C_init(void);
-uint8_t I2C_Start(uint8_t SLA_ADDRESS);
+uint8_t I2C_Start(uint8_t Device_ADDRESS);
 uint8_t I2C_Write(uint8_t DATA);
 uint8_t I2C_READ_ACK(void);
 uint8_t I2C_READ_NACK(void);
