@@ -1,6 +1,6 @@
 //Grid Eye AMG8853
 
-#define AMG8853_address     0b1101000
+#define AMG8853_address     0b11010000
 #define GRID_SIDE           8
 #define NUM_CELLS           GRID_SIDE*GRID_SIDE
 

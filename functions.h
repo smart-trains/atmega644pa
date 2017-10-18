@@ -7,8 +7,6 @@ void AMG8853_init(void);
 void HTU21D_init(void);
 void SC_init(void);
 void SPI_MasterInit(void);
-void RS485_init(void);
-
 
 byte SPI_MasterTransmit(byte cData);
 
