@@ -188,7 +188,7 @@ void RS485_init(void) {
 	UBRR0H = (BRC >> 8);
 	UBRR0L = BRC;
 	// USART Transmitter Enable; TX Complete Interrupt Enable;
-	// Receiver Enable;
+	// USART Receiver Enable; RX Complete Interrupt Enable.
 	UCSR0B = _BV(TXEN0) | _BV(TXCIE0) | _BV(RXEN0) | _BV(RXCIE0);
 	// Set Character Size to 8-bit
 	UCSR0C = _BV(UCSZ01) | _BV(UCSZ00);
@@ -316,11 +316,13 @@ void SC_chip_unselect(void) {
 
 // SC18IS600 ignore the least significant bit of slave address and set it to 1 to read
 byte SC_get_read_address(byte address) {
+	address << 1;
     return address | (byte) 0b00000001;
 }
 
 // SC18IS600 ignore the least significant bit of slave address and set it to 0 to write
 byte SC_get_write_address(byte address) {
+	address << 1;
     return address & (byte) 0b11111110;
 }
 
